@@ -56,6 +56,7 @@ public class Inventory : MonoBehaviour
 		InstanstiateFrames();
 		InstantiateObject("crafting bench", new Vector2(0, 0), true);
         InstantiateObject("scrap wood", new Vector2(-3, 0), false);
+        InstantiateObject("rock", new Vector2(3, 0), false);
         TryReplaceTool();
 	}
 
@@ -165,17 +166,18 @@ public class Inventory : MonoBehaviour
 			{
 				Objects[i].SetSelectedFrameIndex(SelectedFrameIndex);
 				Objects[i].SetItemHolding(FrameList[SlotEquipped].GetComponent<Frame>().GetItemIndex());
+				Objects[i].SetItemName(FrameList[SlotEquipped].GetComponent<Frame>().GetItem());
                 if (Objects[i].GetDurability() <= 0)
                 {
 					if (Objects[i].name.Contains("scrap wood"))
 					{
 						QueueItemAdd(7, 8);
-						if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("axe"))
-						{
-                            QueueItemAdd(7, 12);
-                        }	
-					}	
-					Destroy(Objects[i].gameObject);
+					}
+                    if (Objects[i].name.Contains("rock"))
+                    {
+                        QueueItemAdd(10, 1);
+                    }
+                    Destroy(Objects[i].gameObject);
                 }
             }
 		}
