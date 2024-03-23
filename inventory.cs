@@ -57,8 +57,7 @@ public class Inventory : MonoBehaviour
 		InstantiateObject("crafting bench", new Vector2(0, 0), true);
         InstantiateObject("scrap wood", new Vector2(-3, 0), false);
         InstantiateObject("rock", new Vector2(3, 0), false);
-        TryReplaceTool();
-	}
+    }
 
 	private void InstanstiateFrames()
 	{
@@ -74,7 +73,7 @@ public class Inventory : MonoBehaviour
 				}
 				else
 				{
-					f.rectTransform.anchoredPosition = new Vector2(f.rectTransform.anchoredPosition.x, 182);
+					f.rectTransform.anchoredPosition = new Vector2(f.rectTransform.anchoredPosition.x, 180);
 				}
 				FrameList[FrameIndex] = f;
 				FrameIndex += 1;
@@ -87,7 +86,10 @@ public class Inventory : MonoBehaviour
 		SetFrame(4, 5, 1);
 		SetFrame(5, 8, 1);
 		SetFrame(6, 9, 1);
-	}
+        SetFrame(7, 11, 1);
+        SetFrame(8, 12, 1);
+        SetFrame(9, 13, 1);
+    }
 
 	private void InstantiateObject(string ObjectName, Vector3 Position, bool HasFrame = false)
 	{
@@ -183,11 +185,30 @@ public class Inventory : MonoBehaviour
 		}
 		Image MouseItemImage = MouseItem.GetComponentsInChildren<Image>()[0];
 		MouseItem.transform.position = Vector2.LerpUnclamped(MouseItem.transform.position, Input.mousePosition, 35 * Time.deltaTime);
-		PlayerAnimator.SetInteger("tool", FrameList[SlotEquipped].GetComponent<Frame>().GetItemIndex());
+		if (!FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("blueprint"))
+		{
+			if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("axe"))
+			{
+				PlayerAnimator.SetInteger("tool", 2);
+			}
+			else if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("pick"))
+			{
+				PlayerAnimator.SetInteger("tool", 3);
+			}
+			else if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("sword") | FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("stick") | FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("stone"))
+			{
+				PlayerAnimator.SetInteger("tool", 4);
+			}
+		}
+		else
+		{
+			PlayerAnimator.SetInteger("tool", 0);
+		}
 		for (int i = 0; i < 100; i++)
 		{
 			if (FrameList[i] != null)
 			{
+				FrameList[i].GetComponent<Frame>().SetInventoryOpen(InventoryOpen);
                 if (ItemQueued != 0)
                 {
                     if (FrameList[i].GetComponent<Frame>().GetItemIndex() == 0 | FrameList[i].GetComponent<Frame>().GetItemIndex() == ItemQueued)
@@ -201,7 +222,7 @@ public class Inventory : MonoBehaviour
 				{
 					if (i < 5)
 					{
-						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-12);
+						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-11);
 					}
 					else
 					{
@@ -212,18 +233,18 @@ public class Inventory : MonoBehaviour
 				{
 					if (i < 5)
 					{
-						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-12);
+						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-11);
 					}
 					else
 					{
-						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-15);
+						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-40);
 						FrameList[i].GetComponent<Frame>().SetSelected(true);
 					}
 				}
 				if (SlotEquipped == i)
 				{
 					FrameList[i].GetComponent<Frame>().SetSelected(true);
-					if (FrameList[i].GetComponent<Frame>().TouchingMouse())
+                    if (FrameList[i].GetComponent<Frame>().TouchingMouse())
 					{
 						if (Input.GetMouseButtonDown(1))
 						{
@@ -232,7 +253,7 @@ public class Inventory : MonoBehaviour
 								if (FrameList[i].GetComponent<Frame>().GetItemIndex() != 0)
 								{
 									FrameSelectedItemIndex = FrameList[i].GetComponent<Frame>().GetItemIndex();
-									SetMouseItem(FrameList[i]);
+                                    SetMouseItem(FrameList[i]);
 									SelectedFrame = FrameList[i];
 									SelectedFrameIndex = i;
 									TryReplaceToolSwap(i, FrameList[i].GetComponent<Frame>().GetItemIndex());
@@ -256,7 +277,7 @@ public class Inventory : MonoBehaviour
 										SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
 										SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
 									}
-									SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
+                                    SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
 									SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
 									TryReplaceToolSwap(i, FrameSelectedItemIndex);
 									FrameList[i].GetComponent<Frame>().SetSelected(false);
@@ -309,7 +330,7 @@ public class Inventory : MonoBehaviour
 								}
 								else
 								{
-									SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
+                                    SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
 									SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
 									if (SelectedFrameIndex != SlotEquipped && FrameList[i].GetComponent<Frame>().GetItemIndex() != 0)
 									{
@@ -383,31 +404,67 @@ public class Inventory : MonoBehaviour
 		}
 	}
 
+	private string FindToolType(string tool)
+	{
+		if (!tool.Contains("blueprint"))
+		{
+			if (tool.Contains("axe"))
+			{
+				return "axe";
+			}
+			else if (tool.Contains("pick"))
+			{
+                return "pick";
+            }
+			else if (tool.Contains("sword"))
+			{
+				return "sword";
+			}
+			else
+			{
+				return tool;
+			}
+		}
+		else
+		{
+			return tool;
+		}
+			
+	}
+
 	private void TryReplaceTool()
 	{
 		if (OldSlotEquipped != SlotEquipped)
 		{
-			if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem() != FrameList[OldSlotEquipped].GetComponent<Frame>().GetItem())
+			UnityEngine.Object tool = ToolParent.GetChild(0);
+
+            if (FindToolType(FrameList[SlotEquipped].GetComponent<Frame>().GetItem()) != FindToolType(FrameList[OldSlotEquipped].GetComponent<Frame>().GetItem()))
 			{
                 for (int i = 0; i < ToolParent.childCount; i++)
                 {
                     Destroy(ToolParent.GetChild(i).gameObject);
                 }
-                Instantiate(Resources.Load($"Tool Prefabs/{FrameList[SlotEquipped].GetComponent<Frame>().GetItem()}"), ToolParent, false);
+                tool = Instantiate(Resources.Load($"Tool Prefabs/{FindToolType(FrameList[SlotEquipped].GetComponent<Frame>().GetItem())}"), ToolParent, false);
             }
-			PlayerAnimator.Rebind();
+            tool.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>($"Item Images/{FrameList[SlotEquipped].GetComponent<Frame>().GetItem()}");
+            PlayerAnimator.Rebind();
 			PlayerAnimator.Update(0f);
 		}
 	}
 
 	private void TryReplaceToolSwap(int index, int itemindex)
 	{
-		for (int i = 0; i < ToolParent.childCount; i++)
+        UnityEngine.Object tool = ToolParent.GetChild(0);
+        if (FindToolType(FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex)) != FindToolType(tool.name))
 		{
-			Destroy(ToolParent.GetChild(i).gameObject); 
+			for (int i = 0; i < ToolParent.childCount; i++)
+			{
+				Destroy(ToolParent.GetChild(i).gameObject); 
+			}
+			tool = Instantiate(Resources.Load($"Tool Prefabs/{FindToolType(FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex))}"), ToolParent, false);
 		}
-		Instantiate(Resources.Load($"Tool Prefabs/{FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex)}"), ToolParent, false);
-		PlayerAnimator.Rebind();
+		tool.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>($"Item Images/{FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex)}");
+        PlayerAnimator.Rebind();
 		PlayerAnimator.Update(0f);
 	}
 
