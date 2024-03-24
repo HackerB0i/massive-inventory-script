@@ -89,6 +89,7 @@ public class Inventory : MonoBehaviour
         SetFrame(7, 11, 1);
         SetFrame(8, 12, 1);
         SetFrame(9, 13, 1);
+        SetFrame(10, 14, 1);
     }
 
 	private void InstantiateObject(string ObjectName, Vector3 Position, bool HasFrame = false)
@@ -224,7 +225,7 @@ public class Inventory : MonoBehaviour
 					{
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-11);
 					}
-					else
+					else if (i < 25)
 					{
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(5);
 					}
@@ -235,8 +236,8 @@ public class Inventory : MonoBehaviour
 					{
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-11);
 					}
-					else
-					{
+                    else if (i < 25)
+                    {
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-40);
 						FrameList[i].GetComponent<Frame>().SetSelected(true);
 					}
