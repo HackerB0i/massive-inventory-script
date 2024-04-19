@@ -42,8 +42,6 @@ public class Inventory : MonoBehaviour
 	private int ItemQueued;
 	private int ItemQueuedAmt;
 
-	public static Inventory Instance { get; private set; }
-
 	private void Start()
 	{
 		InputActions = new PlayerInputActions();
@@ -56,18 +54,19 @@ public class Inventory : MonoBehaviour
 		InputActions.Player.Slot5.performed += Slot5;
 		InputActions.Player.Inventory.performed += UpdateInventory;
 		InstanstiateFrames();
-		InstantiateObject("crafting bench", new Vector2(0, 0), true);
+		InstantiateObject("crafting bench", new Vector2(0, 0), 0, true);
 		for (int i = 0; i < 4; i++)
 		{
-			InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), false);
+			InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
 		}
         for (int i = 0; i < 2; i++)
         {
-            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), false);
+            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
         }
-        InstantiateObject("glowstar bush", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), false);
-        InstantiateObject("furnace", new Vector2(3, -2.5f), true);
-        InstantiateObject("chest", new Vector2(-3, -2.5f), true);
+        InstantiateObject("raw iron", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+        InstantiateObject("glowstar bush", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+        InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
+        InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
     }
 
 	private void InstanstiateFrames()
@@ -104,7 +103,7 @@ public class Inventory : MonoBehaviour
         SetFrame(11, 15, 100);
     }
 
-	private void InstantiateObject(string ObjectName, Vector3 Position, bool HasFrame = false)
+	private void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
 	{
 		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity);
 		Objects[ObjectIndex] = Object.GetComponent<Object>();
@@ -115,7 +114,7 @@ public class Inventory : MonoBehaviour
 			{ 
 				if (Object.GetComponentsInChildren<Image>()[i].name.Contains("Frame"))
 				{
-					FrameList[FrameIndex] = (Object.GetComponentsInChildren<Image>()[i]);
+					FrameList[FrameIndex] = Object.GetComponentsInChildren<Image>()[i];
 					FrameIndex += 1;
 				}
 			}
@@ -188,7 +187,7 @@ public class Inventory : MonoBehaviour
 				{
 					if (Objects[i].name.Contains("scrap wood"))
 					{
-						QueueItemAdd(7, 8);
+						QueueItemAdd(7, 4);
 					}
 					if (Objects[i].name.Contains("rock"))
 					{
@@ -198,7 +197,11 @@ public class Inventory : MonoBehaviour
 					{
                         QueueItemAdd(14, 3);
                     }
-					Destroy(Objects[i].gameObject);
+                    if (Objects[i].name.Contains("raw iron"))
+                    {
+                        QueueItemAdd(16, 2);
+                    }
+                    Destroy(Objects[i].gameObject);
 				}
 			}
 		}
