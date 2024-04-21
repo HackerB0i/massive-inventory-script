@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using static UnityEditor.Progress;
 using Random = UnityEngine.Random;
 
 public class Inventory : MonoBehaviour
@@ -30,6 +31,7 @@ public class Inventory : MonoBehaviour
 	private int OldSlotEquipped = 0;
 	private bool InventoryOpen = false;
 	private bool IsResult = false;
+	private Frame HoldingObjectFrame;
 	private Animator anim;
 	private Image[] FrameList = new Image[100];
 	private Object[] Objects = new Object[100];
@@ -39,8 +41,8 @@ public class Inventory : MonoBehaviour
 	private int SelectedItemAmount;
 	private int FrameIndex = 0;
 	private int ObjectIndex = 0;
-	private int ItemQueued;
-	private int ItemQueuedAmt;
+	private int[] ItemsQueued = new int[0];
+	private int[] ItemQueuedAmts = new int[0];
 
 	private void Start()
 	{
@@ -52,21 +54,21 @@ public class Inventory : MonoBehaviour
 		InputActions.Player.Slot3.performed += Slot3;
 		InputActions.Player.Slot4.performed += Slot4;
 		InputActions.Player.Slot5.performed += Slot5;
-		InputActions.Player.Inventory.performed += UpdateInventory;
+        InputActions.Player.Swing.performed += Swing;
+        InputActions.Player.Inventory.performed += UpdateInventory;
 		InstanstiateFrames();
-		InstantiateObject("crafting bench", new Vector2(0, 0), 0, true);
-		for (int i = 0; i < 4; i++)
+		InstantiateObject("crafting bench", new Vector2(0, -2.5f), 0, true);
+		for (int i = 0; i < 2; i++)
 		{
-			InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+			InstantiateObject("scrap wood", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
 		}
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 1; i++)
         {
-            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+            InstantiateObject("rock", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
         }
-        InstantiateObject("raw iron", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
-        InstantiateObject("glowstar bush", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
-        InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
-        InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
+        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
+        //InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
+        //InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
     }
 
 	private void InstanstiateFrames()
@@ -101,6 +103,7 @@ public class Inventory : MonoBehaviour
 		SetFrame(9, 13, 1);
 		SetFrame(10, 14, 1);
         SetFrame(11, 15, 100);
+        SetFrame(12, 18, 100);
     }
 
 	private void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
@@ -172,10 +175,17 @@ public class Inventory : MonoBehaviour
 		TryReplaceTool();
 	}
 
+	private void Swing(InputAction.CallbackContext context)
+	{
+		if (HoldingObjectFrame != null)
+		{
+            InstantiateObject(HoldingObjectFrame.GetItem(), GhostObject.transform.position, 0, true);
+			HoldingObjectFrame.SetItemAmount(HoldingObjectFrame.GetItemAmount() - 1);
+        }
+	}
+
 	private void Update()
 	{
-        GhostObject.transform.position = Vector2.LerpUnclamped(GhostObject.transform.position, Camera.main.ScreenToWorldPoint(Input.mousePosition), 35 * Time.deltaTime);
-        
 		for (int i = 0; i < 100; i++)
 		{
 			if (Objects[i] != null)
@@ -188,21 +198,46 @@ public class Inventory : MonoBehaviour
 					if (Objects[i].name.Contains("scrap wood"))
 					{
 						QueueItemAdd(7, 4);
-					}
+						if (Random.Range(0,3) < 2)
+						{
+                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                        }
+                        else
+						{
+                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                        }
+                    }
 					if (Objects[i].name.Contains("rock"))
 					{
 						QueueItemAdd(10, 1);
-					}
+                        if (Random.Range(0, 3) < 2)
+                        {
+                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                        }
+                        else
+                        {
+                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                        }
+                    }
 					if (Objects[i].name.Contains("glowstar bush"))
 					{
                         QueueItemAdd(14, 3);
+                        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
                     }
                     if (Objects[i].name.Contains("raw iron"))
                     {
                         QueueItemAdd(16, 2);
                     }
+                    if (Objects[i].name.Contains("furnace"))
+                    {
+                        QueueItemAdd(18, 1);
+                    }
+                    if (Objects[i].name.Contains("crafting bench"))
+                    {
+                        QueueItemAdd(15, 1);
+                    }
                     Destroy(Objects[i].gameObject);
-				}
+                }
 			}
 		}
 		Image MouseItemImage = MouseItem.GetComponentsInChildren<Image>()[0];
@@ -231,14 +266,18 @@ public class Inventory : MonoBehaviour
 			if (FrameList[i] != null)
 			{
 				FrameList[i].GetComponent<Frame>().SetInventoryOpen(InventoryOpen);
-				if (ItemQueued != 0)
+				if (ItemsQueued.Length != 0)
 				{
-					if (FrameList[i].GetComponent<Frame>().GetItemIndex() == 0 | FrameList[i].GetComponent<Frame>().GetItemIndex() == ItemQueued)
-					{
-						FrameList[i].GetComponent<Frame>().SetItemIndex(ItemQueued);
-						FrameList[i].GetComponent<Frame>().SetItemAmount(ItemQueuedAmt + FrameList[i].GetComponent<Frame>().GetItemAmount());
-						ItemQueued = 0;
-					}
+						for (int j = 0; j < ItemsQueued.Length; j++) 
+						{
+							if (FrameList[i].GetComponent<Frame>().GetItemIndex() == 0 | FrameList[i].GetComponent<Frame>().GetItemIndex() == ItemsQueued[j])
+							{
+								FrameList[i].GetComponent<Frame>().SetItemIndex(ItemsQueued[j]);
+								FrameList[i].GetComponent<Frame>().SetItemAmount(ItemQueuedAmts[j] + FrameList[i].GetComponent<Frame>().GetItemAmount());
+								ItemsQueued = ArrayRemoveAt(ItemsQueued, j);
+								ItemQueuedAmts = ArrayRemoveAt(ItemQueuedAmts, j);
+							}
+						}
 				}
 				if (InventoryOpen)
 				{
@@ -266,6 +305,18 @@ public class Inventory : MonoBehaviour
 				if (SlotEquipped == i)
 				{
 					FrameList[i].GetComponent<Frame>().SetSelected(true);
+					if (FrameList[i].GetComponent<Frame>().GetItemType() == "object")
+					{
+                        GhostObject.gameObject.SetActive(true);
+						GhostObject.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>($"Object Images/{FrameList[i].GetComponent<Frame>().GetItem()}");
+						HoldingObjectFrame = FrameList[i].GetComponent<Frame>();
+                    }
+					else
+					{
+						GhostObject.gameObject.SetActive(false);
+						HoldingObjectFrame = null;
+
+                    }
 					if (FrameList[i].GetComponent<Frame>().TouchingMouse())
 					{
 						if (Input.GetMouseButtonDown(1))
@@ -427,6 +478,13 @@ public class Inventory : MonoBehaviour
 		}
 	}
 
+	private int[] ArrayRemoveAt(int[] array, int index)
+	{
+		var list = new List<int>(array);
+		list.RemoveAt(index);
+        return list.ToArray();
+	}
+
 	private string FindToolType(string tool)
 	{
 		if (!tool.Contains("blueprint"))
@@ -530,7 +588,11 @@ public class Inventory : MonoBehaviour
 
 	public void QueueItemAdd(int item, float amount)
 	{
-		ItemQueued = item;
-		ItemQueuedAmt = (int)amount;
+		var ItemsQueuedList = new List<int>(ItemsQueued.ToList());
+		var ItemQueuedAmtsList = new List<int>(ItemQueuedAmts.ToList());
+		ItemsQueuedList.Add(item);
+		ItemQueuedAmtsList.Add((int)amount);
+		ItemsQueued = ItemsQueuedList.ToArray();
+		ItemQueuedAmts = ItemQueuedAmtsList.ToArray();
 	}
 }
