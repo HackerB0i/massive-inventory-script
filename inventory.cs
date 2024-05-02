@@ -10,7 +10,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using static UnityEditor.Progress;
 using Random = UnityEngine.Random;
 
 public class Inventory : MonoBehaviour
@@ -33,8 +32,8 @@ public class Inventory : MonoBehaviour
 	private bool IsResult = false;
 	private Frame HoldingObjectFrame;
 	private Animator anim;
-	private Image[] FrameList = new Image[100];
-	private Object[] Objects = new Object[100];
+	private Image[] FrameList = new Image[10000];
+	private Object[] Objects = new Object[10000];
 	private Image SelectedFrame;
 	private int SelectedFrameIndex;
 	private int FrameSelectedItemIndex = 0;
@@ -60,13 +59,13 @@ public class Inventory : MonoBehaviour
 		InstantiateObject("crafting bench", new Vector2(0, -2.5f), 0, true);
 		for (int i = 0; i < 2; i++)
 		{
-			InstantiateObject("scrap wood", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
+			InstantiateObject("scrap wood", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
 		}
         for (int i = 0; i < 1; i++)
         {
-            InstantiateObject("rock", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
+            InstantiateObject("rock", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
         }
-        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
+        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
         //InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
         //InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
     }
@@ -104,6 +103,7 @@ public class Inventory : MonoBehaviour
 		SetFrame(10, 14, 1);
         SetFrame(11, 15, 100);
         SetFrame(12, 18, 100);
+        SetFrame(13, 16, 100);
     }
 
 	private void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
@@ -200,11 +200,11 @@ public class Inventory : MonoBehaviour
 						QueueItemAdd(7, 4);
 						if (Random.Range(0,3) < 2)
 						{
-                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
                         }
                         else
 						{
-                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
                         }
                     }
 					if (Objects[i].name.Contains("rock"))
@@ -212,17 +212,17 @@ public class Inventory : MonoBehaviour
 						QueueItemAdd(10, 1);
                         if (Random.Range(0, 3) < 2)
                         {
-                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
                         }
                         else
                         {
-                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2.5f)), 0);
+                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
                         }
                     }
 					if (Objects[i].name.Contains("glowstar bush"))
 					{
                         QueueItemAdd(14, 3);
-                        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2.5f)), 0);
+                        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2f)), 0);
                     }
                     if (Objects[i].name.Contains("raw iron"))
                     {
@@ -590,8 +590,15 @@ public class Inventory : MonoBehaviour
 	{
 		var ItemsQueuedList = new List<int>(ItemsQueued.ToList());
 		var ItemQueuedAmtsList = new List<int>(ItemQueuedAmts.ToList());
-		ItemsQueuedList.Add(item);
-		ItemQueuedAmtsList.Add((int)amount);
+		if (!ItemsQueuedList.Contains(item))
+		{
+			ItemsQueuedList.Add(item);
+			ItemQueuedAmtsList.Add((int)amount);
+		}
+		else
+		{
+			ItemQueuedAmtsList[ItemsQueuedList.IndexOf(item)] += (int)amount;
+        }
 		ItemsQueued = ItemsQueuedList.ToArray();
 		ItemQueuedAmts = ItemQueuedAmtsList.ToArray();
 	}
