@@ -43,8 +43,13 @@ public class Inventory : MonoBehaviour
 	private int[] ItemsQueued = new int[0];
 	private int[] ItemQueuedAmts = new int[0];
 
+
+
+	public static Inventory Instance { get; private set; }
+
 	private void Start()
 	{
+		Instance = this;
 		InputActions = new PlayerInputActions();
 		anim = GetComponent<Animator>();
 		InputActions.Player.Enable();
@@ -191,7 +196,6 @@ public class Inventory : MonoBehaviour
 			if (Objects[i] != null)
 			{
 				Objects[i].SetSelectedFrameIndex(SelectedFrameIndex);
-				Objects[i].SetItemHolding(FrameList[SlotEquipped].GetComponent<Frame>().GetItemIndex());
 				Objects[i].SetItemName(FrameList[SlotEquipped].GetComponent<Frame>().GetItem());
 				if (Objects[i].GetDurability() <= 0)
 				{
@@ -602,4 +606,9 @@ public class Inventory : MonoBehaviour
 		ItemsQueued = ItemsQueuedList.ToArray();
 		ItemQueuedAmts = ItemQueuedAmtsList.ToArray();
 	}
+
+	public int GetItemHolding()
+	{
+		return FrameList[SlotEquipped].GetComponent<Frame>().GetItemIndex();
+    }
 }
