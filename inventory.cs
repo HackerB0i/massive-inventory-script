@@ -71,6 +71,7 @@ public class Inventory : MonoBehaviour
             InstantiateObject("rock", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
         }
         InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
+        InstantiateObject("elevator", new Vector2(Random.Range(0, 0), Random.Range(0, 0)), 0);
         //InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
         //InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
     }
