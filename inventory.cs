@@ -25,6 +25,7 @@ public class Inventory : MonoBehaviour
 	[SerializeField] private TextMeshProUGUI MouseItemText;
 	[SerializeField] private TextMeshProUGUI MouseItemBorder;
 	[SerializeField] private Transform GhostObject;
+	[SerializeField] private RoomManager RoomManager;
 
 	private PlayerInputActions InputActions;
 	private int OldSlotEquipped = 0;
@@ -42,8 +43,6 @@ public class Inventory : MonoBehaviour
 	private int ObjectIndex = 0;
 	private int[] ItemsQueued = new int[0];
 	private int[] ItemQueuedAmts = new int[0];
-
-
 
 	public static Inventory Instance { get; private set; }
 
@@ -71,7 +70,7 @@ public class Inventory : MonoBehaviour
             InstantiateObject("rock", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
         }
         InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
-        InstantiateObject("elevator", new Vector2(Random.Range(0, 0), Random.Range(0, 0)), 0);
+        //InstantiateObject("elevator", new Vector2(0, 3.1f), 0);
         //InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
         //InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
     }
@@ -114,7 +113,7 @@ public class Inventory : MonoBehaviour
 
 	private void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
 	{
-		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity);
+		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity, RoomManager.GetRoom(true));
 		Objects[ObjectIndex] = Object.GetComponent<Object>();
 		Object.GetComponent<Object>().SetInventory(GetComponent<Inventory>());
 		if (HasFrame)
