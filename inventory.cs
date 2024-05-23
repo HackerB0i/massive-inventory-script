@@ -60,19 +60,6 @@ public class Inventory : MonoBehaviour
         InputActions.Player.Swing.performed += Swing;
         InputActions.Player.Inventory.performed += UpdateInventory;
 		InstanstiateFrames();
-		InstantiateObject("crafting bench", new Vector2(0, -2.5f), 0, true);
-		for (int i = 0; i < 2; i++)
-		{
-			InstantiateObject("scrap wood", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
-		}
-        for (int i = 0; i < 1; i++)
-        {
-            InstantiateObject("rock", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
-        }
-        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2f, 2f)), 0);
-        //InstantiateObject("elevator", new Vector2(0, 3.1f), 0);
-        //InstantiateObject("furnace", new Vector2(3, -2.5f), 0, true);
-        //InstantiateObject("chest", new Vector2(-3, -2.5f), 0, true);
     }
 
 	private void InstanstiateFrames()
@@ -111,12 +98,14 @@ public class Inventory : MonoBehaviour
         SetFrame(13, 16, 100);
     }
 
-	private void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
+	public void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
 	{
-		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity, RoomManager.GetRoom(true));
+		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity, RoomManager.GetRoom(false, index));
 		Objects[ObjectIndex] = Object.GetComponent<Object>();
 		Object.GetComponent<Object>().SetInventory(GetComponent<Inventory>());
-		if (HasFrame)
+		Object.GetComponent<Object>().SetRoomIndex(index);
+
+        if (HasFrame)
 		{
 			for (int i = 0; i < Object.GetComponentsInChildren<Image>().Length; i++)
 			{ 
