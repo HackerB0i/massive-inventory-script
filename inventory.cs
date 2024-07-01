@@ -14,6 +14,7 @@ using Random = UnityEngine.Random;
 
 public class Inventory : MonoBehaviour
 {
+	[SerializeField] private ItemList GlobalItemList;
 	[SerializeField] private Animator PlayerAnimator;
 	[SerializeField] private int SlotEquipped;
 	[SerializeField] private RectTransform point;
@@ -33,22 +34,27 @@ public class Inventory : MonoBehaviour
 	private bool IsResult = false;
 	private Frame HoldingObjectFrame;
 	private Animator anim;
-	private Image[] FrameList = new Image[10000];
-	private Object[] Objects = new Object[10000];
+	private List<Image> FrameList = new List<Image>();
+	private Image[] HotbarFrames = new Image[5];
+	private List<Object> Objects = new List<Object>();
 	private Image SelectedFrame;
 	private int SelectedFrameIndex;
-	private int FrameSelectedItemIndex = 0;
+	private string FrameSelectedItem = "air";
 	private int SelectedItemAmount;
-	private int FrameIndex = 0;
-	private int ObjectIndex = 0;
-	private int[] ItemsQueued = new int[0];
-	private int[] ItemQueuedAmts = new int[0];
+	private List<string> ItemsQueued = new List<string>();
+	private List<int> ItemQueuedAmts = new List<int>();
+
+	private float DamageAdd;
 
 	public static Inventory Instance { get; private set; }
 
-	private void Start()
+    private void Awake()
+    {
+        Instance = this;
+    }
+
+    private void Start()
 	{
-		Instance = this;
 		InputActions = new PlayerInputActions();
 		anim = GetComponent<Animator>();
 		InputActions.Player.Enable();
@@ -69,7 +75,7 @@ public class Inventory : MonoBehaviour
 			for (int x = 0; x < 5; x++)
 			{
 				Image f = Instantiate(Frame, transform);
-				f.rectTransform.anchoredPosition = new Vector2(-67 + x * 75, f.rectTransform.anchoredPosition.y);
+				f.rectTransform.anchoredPosition = new Vector2(233 + x * -75, f.rectTransform.anchoredPosition.y);
 				if (y > 0)
 				{
 					f.rectTransform.anchoredPosition = new Vector2(f.rectTransform.anchoredPosition.x, 160 - 75 * y);
@@ -78,45 +84,24 @@ public class Inventory : MonoBehaviour
 				{
 					f.rectTransform.anchoredPosition = new Vector2(f.rectTransform.anchoredPosition.x, 180);
 				}
-				FrameList[FrameIndex] = f;
-				FrameIndex += 1;
+				if (y == 0)
+				{
+					f.name = "hotbar frame";
+                    HotbarFrames[4 - x] = f;
+                }
+				else
+				{
+                    f.name = "inventory frame";
+                }
 			}
 		}
-		SetFrame(0, 2, 1);
-		SetFrame(1, 6, 1);
-		SetFrame(2, 1, 99);
-		SetFrame(3, 7, 99);
-		SetFrame(4, 5, 1);
-		SetFrame(5, 8, 1);
-		SetFrame(6, 9, 1);
-		SetFrame(7, 11, 1);
-		SetFrame(8, 12, 1);
-		SetFrame(9, 13, 1);
-		SetFrame(10, 14, 1);
-        SetFrame(11, 15, 100);
-        SetFrame(12, 18, 100);
-        SetFrame(13, 16, 100);
+		
     }
 
 	public void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
 	{
 		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity, RoomManager.GetRoom(false, index));
-		Objects[ObjectIndex] = Object.GetComponent<Object>();
-		Object.GetComponent<Object>().SetInventory(GetComponent<Inventory>());
-		Object.GetComponent<Object>().SetRoomIndex(index);
-
-        if (HasFrame)
-		{
-			for (int i = 0; i < Object.GetComponentsInChildren<Image>().Length; i++)
-			{ 
-				if (Object.GetComponentsInChildren<Image>()[i].name.Contains("Frame"))
-				{
-					FrameList[FrameIndex] = Object.GetComponentsInChildren<Image>()[i];
-					FrameIndex += 1;
-				}
-			}
-		}
-		ObjectIndex += 1;
+		Objects.Add(Object.GetComponent<Object>());
 	}
 
 	private void UpdateInventory(InputAction.CallbackContext context)
@@ -139,7 +124,7 @@ public class Inventory : MonoBehaviour
 		OldSlotEquipped = SlotEquipped;
 		SlotEquipped = 0;
 		TryReplaceTool();
-	}
+    }
 
 	private void Slot2(InputAction.CallbackContext context)
 	{
@@ -175,129 +160,139 @@ public class Inventory : MonoBehaviour
 		{
             InstantiateObject(HoldingObjectFrame.GetItem(), GhostObject.transform.position, 0, true);
 			HoldingObjectFrame.SetItemAmount(HoldingObjectFrame.GetItemAmount() - 1);
+			if (HoldingObjectFrame.GetItemAmount() - 1 <= 0)
+			{
+                HoldingObjectFrame.GetComponent<Frame>().SetItem("air");
+                HoldingObjectFrame.GetComponent<Frame>().SetItemAmount(0);
+                ForceReplaceTool();
+            }
         }
 	}
 
 	private void Update()
 	{
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < Objects.Count(); i++)
 		{
-			if (Objects[i] != null)
+			Objects[i].SetSelectedFrameIndex(SelectedFrameIndex);
+			Objects[i].SetItemName(HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem());
+			if (Objects[i].GetDurability() <= 0)
 			{
-				Objects[i].SetSelectedFrameIndex(SelectedFrameIndex);
-				Objects[i].SetItemName(FrameList[SlotEquipped].GetComponent<Frame>().GetItem());
-				if (Objects[i].GetDurability() <= 0)
+				if (Objects[i].name.Contains("scrap wood"))
 				{
-					if (Objects[i].name.Contains("scrap wood"))
-					{
-						QueueItemAdd(7, 4);
-						if (Random.Range(0,3) < 2)
-						{
-                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
-                        }
-                        else
-						{
-                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
-                        }
-                    }
-					if (Objects[i].name.Contains("rock"))
-					{
-						QueueItemAdd(10, 1);
-                        if (Random.Range(0, 3) < 2)
-                        {
-                            InstantiateObject("scrap wood", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
-                        }
-                        else
-                        {
-                            InstantiateObject("rock", new Vector2(Random.Range(-3f, 3f), Random.Range(-2.5f, 2f)), 0);
-                        }
-                    }
-					if (Objects[i].name.Contains("glowstar bush"))
-					{
-                        QueueItemAdd(14, 3);
-                        InstantiateObject("glowstar bush", new Vector2(Random.Range(-2.5f, 2.5f), Random.Range(-2.5f, 2f)), 0);
-                    }
-                    if (Objects[i].name.Contains("raw iron"))
-                    {
-                        QueueItemAdd(16, 2);
-                    }
-                    if (Objects[i].name.Contains("furnace"))
-                    {
-                        QueueItemAdd(18, 1);
-                    }
-                    if (Objects[i].name.Contains("crafting bench"))
-                    {
-                        QueueItemAdd(15, 1);
-                    }
-                    Destroy(Objects[i].gameObject);
+					QueueItemAdd("wood scrap", 4);
                 }
+				if (Objects[i].name.Contains("rock"))
+				{
+					QueueItemAdd("stone", 1);
+                }
+				if (Objects[i].name.Contains("glowstar bush"))
+				{
+                    QueueItemAdd("glowstar", 3);
+                    QueueItemAdd("stick", 2);
+                }
+                if (Objects[i].name.Contains("raw iron"))
+                {
+                    QueueItemAdd("raw iron shard", 2);
+                }
+                if (Objects[i].name.Contains("furnace"))
+                {
+                    QueueItemAdd("furnace", 1);
+                }
+                if (Objects[i].name.Contains("crafting bench"))
+                {
+                    QueueItemAdd("crafting bench", 1);
+                }
+                if (Objects[i].name.Contains("chest"))
+                {
+                    QueueItemAdd("chest", 1);
+                }
+                if (Objects[i].name.Contains("planter"))
+                {
+                    QueueItemAdd("planter", 1);
+                }
+                Destroy(Objects[i].gameObject);
+				Objects.Remove(Objects[i]);
 			}
 		}
 		Image MouseItemImage = MouseItem.GetComponentsInChildren<Image>()[0];
 		MouseItem.transform.position = Vector2.LerpUnclamped(MouseItem.transform.position, Input.mousePosition, 35 * Time.deltaTime);
-		if (!FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("blueprint"))
+		if (!HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("blueprint"))
 		{
-			if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("axe"))
+			if (HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("axe"))
 			{
 				PlayerAnimator.SetInteger("tool", 2);
 			}
-			else if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("pick"))
+			else if (HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("pick"))
 			{
 				PlayerAnimator.SetInteger("tool", 3);
 			}
-			else if (FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("sword") | FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("stick") | FrameList[SlotEquipped].GetComponent<Frame>().GetItem().Contains("stone"))
+			else if (HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("sword") | HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("stick") | HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("stone"))
 			{
 				PlayerAnimator.SetInteger("tool", 4);
 			}
-		}
+			else if (HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItemType() == "food")
+			{
+                PlayerAnimator.SetInteger("tool", 5);
+            }
+            else if (HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem().Contains("bow"))
+            {
+                PlayerAnimator.SetInteger("tool", 6);
+            }
+
+        }
 		else
 		{
 			PlayerAnimator.SetInteger("tool", 0);
 		}
-		for (int i = 0; i < 100; i++)
+		for (int i = 0; i < FrameList.Count; i++)
 		{
 			if (FrameList[i] != null)
 			{
-				FrameList[i].GetComponent<Frame>().SetInventoryOpen(InventoryOpen);
-				if (ItemsQueued.Length != 0)
+                FrameList[i].GetComponent<Frame>().SetDamageAdd(0);
+                FrameList[i].GetComponent<Frame>().SetInventoryOpen(InventoryOpen);
+				if (ItemsQueued.Count != 0 && !FrameList[i].name.Contains("Object"))
 				{
-						for (int j = 0; j < ItemsQueued.Length; j++) 
+					for (int j = 0; j < ItemsQueued.Count; j++) 
+					{
+						if (FrameList[i].GetComponent<Frame>().GetItem() == "air" | FrameList[i].GetComponent<Frame>().GetItem() == ItemsQueued[j])
 						{
-							if (FrameList[i].GetComponent<Frame>().GetItemIndex() == 0 | FrameList[i].GetComponent<Frame>().GetItemIndex() == ItemsQueued[j])
+							FrameList[i].GetComponent<Frame>().SetItemAmount(ItemQueuedAmts[j] + FrameList[i].GetComponent<Frame>().GetItemAmount());
+							FrameList[i].GetComponent<Frame>().SetItem(ItemsQueued[j]);
+							if (FrameList[i].GetComponent<Frame>().GetItem() == ItemsQueued[j])
 							{
-								FrameList[i].GetComponent<Frame>().SetItemIndex(ItemsQueued[j]);
-								FrameList[i].GetComponent<Frame>().SetItemAmount(ItemQueuedAmts[j] + FrameList[i].GetComponent<Frame>().GetItemAmount());
-								ItemsQueued = ArrayRemoveAt(ItemsQueued, j);
-								ItemQueuedAmts = ArrayRemoveAt(ItemQueuedAmts, j);
+								ItemsQueued.RemoveAt(j);
+								ItemQueuedAmts.RemoveAt(j);
 							}
 						}
+					}
 				}
 				if (InventoryOpen)
 				{
-					if (i < 5)
+					if (FrameList[i].name.Contains("hotbar"))
 					{
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-11);
 					}
-					else if (i < 25)
+					else if (FrameList[i].name.Contains("inventory"))
 					{
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(5);
 					}
 				}
 				else
 				{
-					if (i < 5)
+					if (FrameList[i].name.Contains("hotbar"))
 					{
-						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-11);
+						FrameList[i].GetComponent<Frame>().SetSelectedOffset(0);
 					}
-					else if (i < 25)
+					else if (FrameList[i].name.Contains("inventory"))
 					{
 						FrameList[i].GetComponent<Frame>().SetSelectedOffset(-40);
 						FrameList[i].GetComponent<Frame>().SetSelected(true);
 					}
 				}
-				if (SlotEquipped == i)
+				if (FrameList[i] == HotbarFrames[SlotEquipped])
 				{
-					FrameList[i].GetComponent<Frame>().SetSelected(true);
+                    FrameList[i].GetComponent<Frame>().SetDamageAdd(DamageAdd);
+                    FrameList[i].GetComponent<Frame>().SetSelected(true);
 					if (FrameList[i].GetComponent<Frame>().GetItemType() == "object")
 					{
                         GhostObject.gameObject.SetActive(true);
@@ -314,42 +309,42 @@ public class Inventory : MonoBehaviour
 					{
 						if (Input.GetMouseButtonDown(1))
 						{
-							if (FrameSelectedItemIndex == 0)
+							if (FrameSelectedItem == "air")
 							{
-								if (FrameList[i].GetComponent<Frame>().GetItemIndex() != 0)
+								if (FrameList[i].GetComponent<Frame>().GetItem() != "air")
 								{
-									FrameSelectedItemIndex = FrameList[i].GetComponent<Frame>().GetItemIndex();
+									FrameSelectedItem = FrameList[i].GetComponent<Frame>().GetItem();
 									SetMouseItem(FrameList[i]);
-									SelectedFrame = FrameList[i];
+                                    TryReplaceToolSwap(FrameList[i].GetComponent<Frame>().GetItem());
+                                    SelectedFrame = FrameList[i];
 									SelectedFrameIndex = i;
-									TryReplaceToolSwap(i, FrameList[i].GetComponent<Frame>().GetItemIndex());
 								}
 							}
 							else
 							{
-								if (FrameSelectedItemIndex == FrameList[i].GetComponent<Frame>().GetItemIndex())
+								if (FrameSelectedItem == FrameList[i].GetComponent<Frame>().GetItem())
 								{
 									FrameList[i].GetComponent<Frame>().SetSelected(false);
-									FrameList[i].GetComponent<Frame>().SetItemIndex(FrameSelectedItemIndex);
+									FrameList[i].GetComponent<Frame>().SetItem(FrameSelectedItem);
 									FrameList[i].GetComponent<Frame>().SetItemAmount(SelectedItemAmount + FrameList[i].GetComponent<Frame>().GetItemAmount());
-									FrameSelectedItemIndex = 0;
+									FrameSelectedItem = "air";
 									MouseItemImage.rectTransform.sizeDelta = Vector2.zero;
 									SetMouseItemText("");
 								}
-								else if (!IsResult | FrameList[i].GetComponent<Frame>().GetItemIndex() == 0)
+								else if (!IsResult | FrameList[i].GetComponent<Frame>().GetItem() == "air")
 								{
 									if (!IsResult)
 									{
-										SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
+										SelectedFrame.GetComponent<Frame>().SetItem(FrameList[i].GetComponent<Frame>().GetItem());
 										SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
 									}
-									SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
+									SelectedFrame.GetComponent<Frame>().SetItem(FrameList[i].GetComponent<Frame>().GetItem());
 									SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
-									TryReplaceToolSwap(i, FrameSelectedItemIndex);
+                                    TryReplaceToolSwap(FrameSelectedItem);
 									FrameList[i].GetComponent<Frame>().SetSelected(false);
-									FrameList[i].GetComponent<Frame>().SetItemIndex(FrameSelectedItemIndex);
+									FrameList[i].GetComponent<Frame>().SetItem(FrameSelectedItem);
 									FrameList[i].GetComponent<Frame>().SetItemAmount(SelectedItemAmount);
-									FrameSelectedItemIndex = 0;
+									FrameSelectedItem = "air";
 									MouseItemImage.rectTransform.sizeDelta = Vector2.zero;
 									SetMouseItemText("");
 								}
@@ -359,18 +354,17 @@ public class Inventory : MonoBehaviour
 				}
 				else if (FrameList[i].GetComponent<Frame>().TouchingMouse())
 				{
-					//print(i);
-					if (InventoryOpen)
+                    if (InventoryOpen)
 					{
 						FrameList[i].GetComponent<Frame>().SetSelected(true);
 					}
 					if (Input.GetMouseButtonDown(1))
 					{
-						if (FrameSelectedItemIndex == 0)
+						if (FrameSelectedItem == "air")
 						{
-							if (FrameList[i].GetComponent<Frame>().GetItemIndex() != 0)
+							if (FrameList[i].GetComponent<Frame>().GetItem() != "air")
 							{
-								FrameSelectedItemIndex = FrameList[i].GetComponent<Frame>().GetItemIndex();
+								FrameSelectedItem = FrameList[i].GetComponent<Frame>().GetItem();
 								SetMouseItem(FrameList[i]);
 								SelectedFrame = FrameList[i];
 								SelectedFrameIndex = i;
@@ -387,62 +381,62 @@ public class Inventory : MonoBehaviour
 						else if (FrameList[i].GetComponent<Frame>().IsPicky())
 						{
                             //print(FrameList[i].GetComponent<Frame>().GetAcceptableItems()[0]);
-                            if (FrameSelectedItemIndex != 0 && FrameList[i].GetComponent<Frame>().GetAcceptableItems().Contains(FrameSelectedItemIndex))
+                            if (FrameSelectedItem != "air" && (FrameList[i].GetComponent<Frame>().GetAcceptableItems().Contains(FrameSelectedItem) | FrameList[i].GetComponent<Frame>().GetAcceptableItems().Contains(GetFrameComponent(0).GetItemTypeByName(FrameSelectedItem))))
 							{
-								if (FrameSelectedItemIndex == FrameList[i].GetComponent<Frame>().GetItemIndex())
+								if (FrameSelectedItem == FrameList[i].GetComponent<Frame>().GetItem())
 								{
 									FrameList[i].GetComponent<Frame>().SetSelected(false);
-									FrameList[i].GetComponent<Frame>().SetItemIndex(FrameSelectedItemIndex);
+									FrameList[i].GetComponent<Frame>().SetItem(FrameSelectedItem);
 									FrameList[i].GetComponent<Frame>().SetItemAmount(SelectedItemAmount + FrameList[i].GetComponent<Frame>().GetItemAmount());
 								}
 								else
 								{
-									SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
+									SelectedFrame.GetComponent<Frame>().SetItem(FrameList[i].GetComponent<Frame>().GetItem());
 									SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
-									if (SelectedFrameIndex != SlotEquipped && FrameList[i].GetComponent<Frame>().GetItemIndex() != 0)
+									if (FrameList[SelectedFrameIndex] == HotbarFrames[SlotEquipped] && FrameList[i].GetComponent<Frame>().GetItem() != "air")
 									{
-										TryReplaceToolSwap(i, FrameList[i].GetComponent<Frame>().GetItemIndex());
+										TryReplaceToolSwap(FrameList[i].GetComponent<Frame>().GetItem());
 									}
 									FrameList[i].GetComponent<Frame>().SetSelected(false);
-									FrameList[i].GetComponent<Frame>().SetItemIndex(FrameSelectedItemIndex);
+									FrameList[i].GetComponent<Frame>().SetItem(FrameSelectedItem);
 									FrameList[i].GetComponent<Frame>().SetItemAmount(SelectedItemAmount);
 								}
-								FrameSelectedItemIndex = 0;
+								FrameSelectedItem = "air";
 								MouseItemImage.rectTransform.sizeDelta = Vector2.zero;
 								SetMouseItemText("");
 							}
 						}
 						else
 						{
-							if (FrameSelectedItemIndex != 0)
+							if (FrameSelectedItem != "air")
 							{
-								if (FrameSelectedItemIndex == FrameList[i].GetComponent<Frame>().GetItemIndex())
+								if (FrameSelectedItem == FrameList[i].GetComponent<Frame>().GetItem())
 								{
 									FrameList[i].GetComponent<Frame>().SetSelected(false);
-									FrameList[i].GetComponent<Frame>().SetItemIndex(FrameSelectedItemIndex);
+									FrameList[i].GetComponent<Frame>().SetItem(FrameSelectedItem);
 									FrameList[i].GetComponent<Frame>().SetItemAmount(SelectedItemAmount + FrameList[i].GetComponent<Frame>().GetItemAmount());
-									FrameSelectedItemIndex = 0;
+									FrameSelectedItem = "air";
 									MouseItemImage.rectTransform.sizeDelta = Vector2.zero;
 									SetMouseItemText("");
 								}
 								else
 								{
-									if (!IsResult | FrameList[i].GetComponent<Frame>().GetItemIndex() == 0)
+									if (!IsResult | FrameList[i].GetComponent<Frame>().GetItem() == "air")
 									{
 										if (!IsResult)
 										{
-											SelectedFrame.GetComponent<Frame>().SetItemIndex(FrameList[i].GetComponent<Frame>().GetItemIndex());
+											SelectedFrame.GetComponent<Frame>().SetItem(FrameList[i].GetComponent<Frame>().GetItem());
 											SelectedFrame.GetComponent<Frame>().SetItemAmount(FrameList[i].GetComponent<Frame>().GetItemAmount());
 										}
 											
-										if (SelectedFrameIndex == SlotEquipped && FrameList[i].GetComponent<Frame>().GetItemIndex() != 0)
+										if (FrameList[SelectedFrameIndex] == HotbarFrames[SlotEquipped] && FrameList[i].GetComponent<Frame>().GetItem() != "air")
 										{
-											TryReplaceToolSwap(i, FrameList[i].GetComponent<Frame>().GetItemIndex());
+											TryReplaceToolSwap(FrameList[i].GetComponent<Frame>().GetItem());
 										}
 										FrameList[i].GetComponent<Frame>().SetSelected(false);
-										FrameList[i].GetComponent<Frame>().SetItemIndex(FrameSelectedItemIndex);
+										FrameList[i].GetComponent<Frame>().SetItem(FrameSelectedItem);
 										FrameList[i].GetComponent<Frame>().SetItemAmount(SelectedItemAmount);
-										FrameSelectedItemIndex = 0;
+										FrameSelectedItem = "air";
 										MouseItemImage.rectTransform.sizeDelta = Vector2.zero;
 										SetMouseItemText("");
 									}
@@ -451,7 +445,7 @@ public class Inventory : MonoBehaviour
 						}
 					}
 				}
-				else if (InventoryOpen || i < 5)
+				else if (InventoryOpen || FrameList[i].name.Contains("hotbar"))
 				{
 					FrameList[i].GetComponent<Frame>().SetSelected(false);
 				}
@@ -471,16 +465,9 @@ public class Inventory : MonoBehaviour
 		}
 	}
 
-	private int[] ArrayRemoveAt(int[] array, int index)
-	{
-		var list = new List<int>(array);
-		list.RemoveAt(index);
-        return list.ToArray();
-	}
-
 	private string FindToolType(string tool)
 	{
-		if (!tool.Contains("blueprint"))
+		if (!tool.Contains("blueprint") && !tool.Contains("skill"))
 		{
 			if (tool.Contains("axe"))
 			{
@@ -493,6 +480,10 @@ public class Inventory : MonoBehaviour
 			else if (tool.Contains("sword"))
 			{
 				return "sword";
+			}
+			else if (tool.Contains("air"))
+			{
+				return "nothing";
 			}
 			else
 			{
@@ -512,32 +503,50 @@ public class Inventory : MonoBehaviour
 		{
 			UnityEngine.Object tool = ToolParent.GetChild(0);
 
-			if (FindToolType(FrameList[SlotEquipped].GetComponent<Frame>().GetItem()) != FindToolType(FrameList[OldSlotEquipped].GetComponent<Frame>().GetItem()))
+			if (FindToolType(HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem()) != FindToolType(HotbarFrames[OldSlotEquipped].GetComponent<Frame>().GetItem()))
 			{
 				for (int i = 0; i < ToolParent.childCount; i++)
 				{
 					Destroy(ToolParent.GetChild(i).gameObject);
 				}
-				tool = Instantiate(Resources.Load($"Tool Prefabs/{FindToolType(FrameList[SlotEquipped].GetComponent<Frame>().GetItem())}"), ToolParent, false);
+				tool = Instantiate(Resources.Load($"Tool Prefabs/{FindToolType(HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem())}"), ToolParent, false);
 			}
-			tool.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>($"Item Images/{FrameList[SlotEquipped].GetComponent<Frame>().GetItem()}");
+			tool.GetComponentsInChildren<SpriteRenderer>()[0].sprite = Resources.Load<Sprite>($"Item Images/{HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem()}");
 			PlayerAnimator.Rebind();
 			PlayerAnimator.Update(0f);
 		}
 	}
 
-	private void TryReplaceToolSwap(int index, int itemindex)
+    private void ForceReplaceTool()
+    {
+
+        UnityEngine.Object tool = ToolParent.GetChild(0);
+
+        if (FindToolType(HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem()) != FindToolType(HotbarFrames[OldSlotEquipped].GetComponent<Frame>().GetItem()))
+        {
+            for (int i = 0; i < ToolParent.childCount; i++)
+            {
+                Destroy(ToolParent.GetChild(i).gameObject);
+            }
+            tool = Instantiate(Resources.Load($"Tool Prefabs/nothing"), ToolParent, false);
+        }
+        tool.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>($"Item Images/nothing");
+        PlayerAnimator.Rebind();
+        PlayerAnimator.Update(0f);
+    }
+
+    private void TryReplaceToolSwap(string item)
 	{
 		UnityEngine.Object tool = ToolParent.GetChild(0);
-		if (FindToolType(FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex)) != FindToolType(tool.name))
+        if (FindToolType(item) != FindToolType(tool.name))
 		{
 			for (int i = 0; i < ToolParent.childCount; i++)
 			{
 				Destroy(ToolParent.GetChild(i).gameObject); 
 			}
-			tool = Instantiate(Resources.Load($"Tool Prefabs/{FindToolType(FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex))}"), ToolParent, false);
+			tool = Instantiate(Resources.Load($"Tool Prefabs/{FindToolType(item)}"), ToolParent, false);
 		}
-		tool.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>($"Item Images/{FrameList[index].GetComponent<Frame>().GetItemListAtIndex(itemindex)}");
+		tool.GetComponentsInChildren<SpriteRenderer>()[0].sprite = Resources.Load<Sprite>($"Item Images/{item}");
 		PlayerAnimator.Rebind();
 		PlayerAnimator.Update(0f);
 	}
@@ -548,7 +557,7 @@ public class Inventory : MonoBehaviour
 		MouseItemImage.sprite = Frame.GetComponent<Frame>().GetSprite();
 		MouseItem.transform.position = Frame.transform.position + new Vector3(16, 8);
 		MouseItemImage.transform.rotation = Frame.GetComponent<Frame>().GetItemDisplay().transform.rotation;
-		Frame.GetComponent<Frame>().SetItemIndex(0);
+		Frame.GetComponent<Frame>().SetItem("air");
 		SelectedItemAmount = Frame.GetComponent<Frame>().GetItemAmount();
 		if (SelectedItemAmount > 1)
 		{
@@ -570,34 +579,57 @@ public class Inventory : MonoBehaviour
 
 	public void AddToFrameList(Image frame)
 	{
-		FrameList.Append(frame);
+		FrameList.Add(frame);
 	}
 
-	private void SetFrame(int Index, int ItemIndex, int Amount)
-	{
-		FrameList[Index].GetComponent<Frame>().SetItemIndex(ItemIndex);
-		FrameList[Index].GetComponent<Frame>().SetItemAmount(Amount);
-	}
+    public void AddToObjectList(Object ob)
+    {
+        Objects.Add(ob);
+    }
 
-	public void QueueItemAdd(int item, float amount)
+	public void QueueItemAdd(string item, float amount)
 	{
-		var ItemsQueuedList = new List<int>(ItemsQueued.ToList());
-		var ItemQueuedAmtsList = new List<int>(ItemQueuedAmts.ToList());
-		if (!ItemsQueuedList.Contains(item))
+		if (!ItemsQueued.Contains(item))
 		{
-			ItemsQueuedList.Add(item);
-			ItemQueuedAmtsList.Add((int)amount);
+            ItemsQueued.Add(item);
+            ItemQueuedAmts.Add((int)amount);
 		}
 		else
 		{
-			ItemQueuedAmtsList[ItemsQueuedList.IndexOf(item)] += (int)amount;
+            ItemQueuedAmts[ItemsQueued.IndexOf(item)] += (int)amount;
         }
-		ItemsQueued = ItemsQueuedList.ToArray();
-		ItemQueuedAmts = ItemQueuedAmtsList.ToArray();
 	}
 
-	public int GetItemHolding()
+	public string GetItemHolding()
 	{
-		return FrameList[SlotEquipped].GetComponent<Frame>().GetItemIndex();
+		return HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem();
     }
+
+	public string GetItemName()
+	{ 
+		return HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItem();
+    }
+
+	public void ChangeItemHoldingAmt(int amt)
+	{
+		HotbarFrames[SlotEquipped].GetComponent<Frame>().SetItemAmount(HotbarFrames[SlotEquipped].GetComponent<Frame>().GetItemAmount() + amt);
+    }
+
+	public float ItemHoldingDamage()
+	{
+		return HotbarFrames[SlotEquipped].GetComponent<Frame>().GetDamage();
+	}
+
+	public Frame GetFrameComponent(int index)
+	{
+		return FrameList[index].GetComponent<Frame>();
+	}
+
+    public ItemList GetGlobalItemList()
+    { return GlobalItemList; }
+
+	public void SetDamageAdd(float damage)
+	{
+		DamageAdd = damage;
+	}
 }
