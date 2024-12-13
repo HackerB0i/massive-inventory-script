@@ -28,33 +28,34 @@ public class Inventory : MonoBehaviour
 	[SerializeField] private Transform GhostObject;
 	[SerializeField] private RoomManager RoomManager;
 
-	private PlayerInputActions InputActions;
-	private int OldSlotEquipped = 0;
+	private PlayerInputActions InputActions; // input handler
+	private int OldSlotEquipped = 0; // slot equipped before switching
 	private bool InventoryOpen = false;
-	private bool IsResult = false;
-	private Frame HoldingObjectFrame;
-	private Animator anim;
-	private List<Image> FrameList = new List<Image>();
-	private Image[] HotbarFrames = new Image[5];
-	private List<Object> Objects = new List<Object>();
-	private Image SelectedFrame;
-	private int SelectedFrameIndex;
-	private string FrameSelectedItem = "air";
-	private int SelectedItemAmount;
-	private List<string> ItemsQueued = new List<string>();
-	private List<int> ItemQueuedAmts = new List<int>();
+	private bool IsResult = false; // selected? frame is a crafting result
+	private Frame HoldingObjectFrame; // the frame object that is currently selected in the hotbar
+	private Animator anim; // animator object
+	private List<Image> FrameList = new List<Image>(); // list of frame objects to iterate thru
+	private Image[] HotbarFrames = new Image[5]; // hotbar frame objects
+	private List<Object> Objects = new List<Object>(); // interactable objects in the scene
+	private Image SelectedFrame; // frame selected with the mouse
+	private int SelectedFrameIndex; // index of frame in list
+	private string FrameSelectedItem = "air"; // the item of the selected frame
+	private int SelectedItemAmount; // amount of items in the selected frame
+	private List<string> ItemsQueued = new List<string>(); // added items from destroying objects
+	private List<int> ItemQueuedAmts = new List<int>(); // amount of items to add to inventory from destorying objects
 
-	private float DamageAdd;
+	private float DamageAdd; // damage boost provided by certain items
 
-	public static Inventory Instance { get; private set; }
+	public static Inventory Instance { get; private set; } // singleton
 
     private void Awake()
     {
-        Instance = this;
+        Instance = this; // set singleton to this instance
     }
 
     private void Start()
 	{
+ 		// set up slot input object and assign methods
 		InputActions = new PlayerInputActions();
 		anim = GetComponent<Animator>();
 		InputActions.Player.Enable();
@@ -68,7 +69,7 @@ public class Inventory : MonoBehaviour
 		InstanstiateFrames();
     }
 
-	private void InstanstiateFrames()
+	private void InstanstiateFrames() // create frame objects
 	{
 		for (int y = 0; y < 5; y++)
 		{
@@ -98,7 +99,7 @@ public class Inventory : MonoBehaviour
 		
     }
 
-	public void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false)
+	public void InstantiateObject(string ObjectName, Vector3 Position, int index, bool HasFrame = false) // create interactable object in scene
 	{
 		Transform Object = Instantiate(Resources.Load<Transform>($"Object Prefabs/{ObjectName}"), Position, Quaternion.identity, RoomManager.GetRoom(false, index));
 		Objects.Add(Object.GetComponent<Object>());
